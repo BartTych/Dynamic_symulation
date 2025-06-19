@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.sparse import lil_matrix
 
-def assemble_global_stiffness(edge_data, number_of_nodes, C=100.0):
+def assemble_global_stiffness(edge_data, number_of_nodes, C=1000000.0):
     dof = 2
     size = dof * number_of_nodes
     K = lil_matrix((size, size))

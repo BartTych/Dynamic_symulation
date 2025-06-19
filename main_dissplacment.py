@@ -4,6 +4,7 @@ from asseble_stiffness_matrix import assemble_global_stiffness
 import numpy as np
 from matplotlib import pyplot as plt
 import math
+import frequency_sweep
 
 edges,number_of_nodes = read_mesh_to_edges("test_5.msh")
 excitation_nodes = get_nodes_for_line("test_5.msh", "BC")
@@ -18,12 +19,12 @@ m_vec = np.full(number_of_nodes * 2, m)  # or node-specific values
 inv_M = 1.0 / m_vec
 
 dt = 0.00001
-n_steps = 250_000
-omega = 250.0        # excitation frequency [rad/s]
+n_steps = 1_000_000
+omega = 200        # excitation frequency [rad/s]
 amplitude = 0.001
 
-damping_ratio = 0.0003  # damping ratio
-damping_coefficient = 2 * math.sqrt(34*100+0.01) * damping_ratio
+damping_ratio = 0.001  # damping ratio
+damping_coefficient = 2 * math.sqrt(34*1000000+0.01) * damping_ratio
 
 u = np.zeros(number_of_nodes * 2)  # initial displacement
 v = np.zeros(number_of_nodes * 2)  # initial displacement
@@ -39,10 +40,16 @@ free_dofs = np.setdiff1d(all_dofs, fixed_dofs)
 exc_log = []
 end_log = []
 
-for step in range(n_steps):
+exc_x, exc_v = frequency_sweep.linear_frequency_sweep(
+    np.linspace(0, n_steps * dt, n_steps), f1=omega/(2*np.pi), f2=64*omega/(2*np.pi), T=n_steps * dt, A=amplitude)
+
+
+for i,step in enumerate(range(n_steps)):
     T = step * dt
-    u[excitation_dofs] = amplitude * np.sin(omega * T)
-    v[excitation_dofs] = amplitude * omega * np.cos(omega * T)
+    u[excitation_dofs] = exc_x[i]
+    v[excitation_dofs] = exc_v[i]
+    #u[excitation_dofs] = amplitude * np.sin(omega * T)
+    #v[excitation_dofs] = amplitude * omega * np.cos(omega * T)
 
     #f_ext = np.zeros(number_of_nodes * 2)  # external force vector
     #f_ext[excitation_dofs] = 10 * np.sin(omega * T)
@@ -63,5 +70,5 @@ for step in range(n_steps):
         print(step)
 
 plt.plot(end_log)
-plt.plot(exc_log)
+#plt.plot(exc_log)
 plt.show()
