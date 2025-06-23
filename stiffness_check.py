@@ -10,32 +10,35 @@ edges,number_of_nodes = read_mesh_to_edges("test_5.msh")
 BC_nodes = get_nodes_for_line("test_5.msh", "BC")
 end_nodes = get_nodes_for_line("test_5.msh", "end")
 
-print(f"excitation nodes: {BC_nodes}")
-print(f"end nodes: {end_nodes}")
+print(f"number of nodes: {number_of_nodes}")
+print(f"BC nodes: {BC_nodes} number of bc nodes: {len(BC_nodes)}")
+print(f"end nodes: {end_nodes} number of end nodes: {len(end_nodes)}")
 
 print('start assembling stiffness matrix')
 K = assemble_global_stiffness(edges, number_of_nodes)
 print('finished assembling stiffness matrix')
 
-m = 0.03 # mass per node [kg]
+m = 0.00066 # mass per node [kg]
 m_vec = np.full(number_of_nodes * 2, m)  # or node-specific values
 inv_M = 1.0 / m_vec
 
-dt = 0.0001
-n_steps = 250_000
+dt = 0.000001
+n_steps = 200_000
 omega = 3      # excitation frequency [rad/s]
 amplitude = 0.001
 
-damping_ratio = 0.01  # damping ratio
-damping_coefficient = 2 * math.sqrt(34*20+0.03) * damping_ratio
+damping_ratio = 0.001  # damping ratio
+damping_coefficient = 2 * math.sqrt(15_000_000+0.03) * damping_ratio
 
 u = np.zeros(number_of_nodes * 2)  # initial displacement
 v = np.zeros(number_of_nodes * 2)  # initial displacement
 
 fixed_dofs = [2 * i for i in BC_nodes]
-excitation_dofs = [2 * i + 1 for i in BC_nodes]
+fixed_dofs += [2 * i + 1 for i in BC_nodes]  # fixed dofs at excitation nodes
 
-response_dofs = [2 * i +1 for i in end_nodes]  # response at end nodes
+excitation_dofs = [2 * i for i in end_nodes]
+
+response_dofs = [2 * i for i in end_nodes]  # response at end nodes
 
 all_dofs = np.arange(number_of_nodes * 2)
 free_dofs = np.setdiff1d(all_dofs, fixed_dofs)
@@ -43,14 +46,22 @@ free_dofs = np.setdiff1d(all_dofs, fixed_dofs)
 exc_log = []
 end_log = []
 
-exc_x, exc_v = frequency_sweep.linear_frequency_sweep(
-    np.linspace(0, n_steps * dt, n_steps), f1=omega/(2*np.pi), f2= omega/(2*np.pi), T=n_steps * dt, A=amplitude)
+
+
+f_ext = np.zeros(number_of_nodes * 2)  # external force vector
+force = 10
+f_ext[excitation_dofs] = force
 
 
 for i,step in enumerate(range(n_steps)):
+    
+    if i < n_steps / 2:
+      f_ext[excitation_dofs] = force * (0.5*np.sin((i *4/ n_steps) * np.pi /2 -np.pi/2)+0.5)  # sinusoidal force at excitation nodes
+    else:
+      f_ext[excitation_dofs] = force 
     T = step * dt
-    u[excitation_dofs] = exc_x[i]
-    v[excitation_dofs] = exc_v[i]
+    #u[excitation_dofs] = exc_x[i]
+    #v[excitation_dofs] = exc_v[i]
     #u[excitation_dofs] = amplitude * np.sin(omega * T)
     #v[excitation_dofs] = amplitude * omega * np.cos(omega * T)
 
@@ -61,7 +72,9 @@ for i,step in enumerate(range(n_steps)):
       # net force vector
     a = np.zeros_like(u)  # acceleration vector
     f_damp = damping_coefficient * v  # damping force
-    a[free_dofs] = (-f_damp[free_dofs] - f_int[free_dofs]  )* inv_M[free_dofs]
+    a[free_dofs] = (-f_damp[free_dofs] - f_int[free_dofs] + f_ext[free_dofs] )* inv_M[free_dofs]
+    #a[free_dofs] = ( - f_int[free_dofs] + f_ext[free_dofs] )* inv_M[free_dofs]
+    
     #a[free_dofs] = (-f_damp[free_dofs] - f_int[free_dofs] + f_ext[free_dofs])* inv_M[free_dofs]
     v[free_dofs] += a[free_dofs] * dt
     # core of symplectic method, u(n+1) = u(n) + v(n+1) * dt
@@ -73,5 +86,6 @@ for i,step in enumerate(range(n_steps)):
         print(step)
 
 plt.plot(end_log)
+print(f"force acting on excitation dofs: {len(end_nodes)* force}")
 #plt.plot(exc_log)
 plt.show()
