@@ -1,0 +1,48 @@
+#pragma once
+#include <Eigen/Sparse>
+#include <Eigen/Dense>
+#include <vector>
+
+class DynamicModel {
+public:
+    DynamicModel(
+        const Eigen::MatrixXd& triplet_matrix,
+        int nrows,
+        int ncols,
+        const std::vector<int>& BC_nodes,
+        const std::vector<int>& response_nodes,
+        std::size_t number_of_nodes,
+        double mass_per_dof,
+        double C_stiffness,
+        double damping_ratio
+    );
+
+    std::pair<std::vector<double>, std::vector<double>> run_simulation(int n_steps, double dt, int log_interval);
+    
+    void excitation_sweep(double t, double& x, double& v_out,
+                          double f0, double f1,
+                          double T, double A) const;
+
+    std::vector<std::pair<double, double>> precompute_excitation(int n_steps, double dt, 
+    double f0, double f1, double T, double A) const;
+
+    // Public members
+    Eigen::SparseMatrix<double> K;
+    Eigen::VectorXd inv_M;
+    Eigen::VectorXd u, v, a, f_damp, f_int;
+    std::vector<int> fixed_dofs;
+    std::vector<int> excitation_dofs;
+    std::vector<int> response_dofs;
+    double C_stiffness;
+    double damping_coefficient;
+
+private:
+    static Eigen::SparseMatrix<double> build_sparse_from_triplets(
+        const Eigen::MatrixXd& triplets, int nrows, int ncols
+    );
+
+    static std::vector<int> get_fixed_dofs(const std::vector<int>& BC_nodes);
+    static std::vector<int> get_excitation_dofs(const std::vector<int>& BC_nodes);
+    static std::vector<int> get_response_dofs(const std::vector<int>& end_nodes);
+    static Eigen::VectorXd build_inv_mass_vector(std::size_t number_of_nodes, double mass_per_dof);
+};
