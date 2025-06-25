@@ -26,24 +26,25 @@ nrows, ncols = K.shape
 triplets = np.vstack((rows, cols, values)).T.astype(np.float64) 
 
 print('first instance of DynamicModel')
-model = DynamicModel.DynamicModel(
-    triplets,
-    nrows,
-    ncols,
-    BC_nodes,
-    end_nodes,
-    number_of_nodes)
+model_1 = DynamicModel.DynamicModel(triplets,nrows,ncols,BC_nodes,end_nodes,number_of_nodes)
+model_2 = DynamicModel.DynamicModel(triplets,nrows,ncols,BC_nodes,end_nodes,number_of_nodes)
+model_3 = DynamicModel.DynamicModel(triplets,nrows,ncols,BC_nodes,end_nodes,number_of_nodes)
 print('finished creation of DynamicModel instance !!!')
 
-print(model.fixed_dofs)
-print(model.excitation_dofs)
-print(model.response_dofs)
-print(model.damping_coefficient)
+
 star = datetime.datetime.now()
-exc_log, end_log = model.run_simulation(10**6,10**-5, 10)
+
+multiplier = 6
+exc_log_1, end_log_1, T_log_1 = model_1.run_simulation(multiplier*10**5,10**-5/multiplier, 10)
+multiplier = 4
+exc_log_2, end_log_2, T_log_2 = model_2.run_simulation(multiplier*10**5,10**-5/multiplier, 10)
+multiplier = 2
+exc_log_3, end_log_3, T_log_3 = model_3.run_simulation(multiplier*10**5,10**-5/multiplier, 10)
+
 end = datetime.datetime.now()
 print(f"simulation took {end - star} seconds")
 
-plt.plot(exc_log, label='excitation')
-plt.plot(end_log, label='end response')
+plt.plot(T_log_1,end_log_1, label='end response 1')
+plt.plot(T_log_2,end_log_2, label='end response 2')
+plt.plot(T_log_3,end_log_3, label='end response 3')
 plt.show()

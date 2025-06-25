@@ -20,7 +20,7 @@ DynamicModel::DynamicModel(
         std::size_t number_of_nodes,
         double mass_per_dof = 0.03,
         double C_stiffness = 1e8,
-        double damping_ratio = 0.01 
+        double damping_ratio = 0.004 
     )
     {
         K = build_sparse_from_triplets(triplet_matrix, nrows, ncols);
@@ -40,17 +40,20 @@ DynamicModel::DynamicModel(
         f_int = Eigen::VectorXd::Zero(ndofs);
     }
 
-std::pair<std::vector<double>, std::vector<double>>
+std::tuple<std::vector<double>, std::vector<double>, std::vector<double>>
 DynamicModel::run_simulation(int n_steps, double dt, int log_interval = 10)
 {
     std::cout << "K: " << K.rows() << " x " << K.cols() << ", u: " << u.size() << std::endl;
     
     std::vector<double> exc_log;
     std::vector<double> end_log;
-    int log_steps = n_steps / log_interval + 1;
-    exc_log.reserve(log_steps);
-    end_log.reserve(log_steps);
-    
+    std::vector<double> steps_log;
+
+    int n_log_steps = n_steps / log_interval + 1;
+    exc_log.reserve(n_log_steps);
+    end_log.reserve(n_log_steps);
+    steps_log.reserve(n_log_steps);
+
     double length = dt * n_steps;
     auto excitation = precompute_excitation(n_steps, dt, 30, 90, length, 0.001);
     std::chrono::high_resolution_clock::time_point last_time = std::chrono::high_resolution_clock::now();
@@ -84,6 +87,7 @@ DynamicModel::run_simulation(int n_steps, double dt, int log_interval = 10)
         // Logging
         if (step % log_interval == 0) {
             exc_log.push_back(u[excitation_dofs[0]]);
+            steps_log.push_back(T);
             if (!response_dofs.empty()) {
                 end_log.push_back(u[response_dofs[0]]);
             }
@@ -110,7 +114,7 @@ DynamicModel::run_simulation(int n_steps, double dt, int log_interval = 10)
         last_time = now;
         }
     }
-    return std::make_pair(exc_log, end_log);
+    return std::make_tuple(exc_log, end_log, steps_log);
 }
 
 std::vector<std::pair<double, double>> DynamicModel::precompute_excitation(int n_steps, double dt, 
