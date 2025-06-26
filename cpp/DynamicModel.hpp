@@ -12,6 +12,7 @@ public:
         const std::vector<int>& BC_nodes,
         const std::vector<int>& response_nodes,
         std::size_t number_of_nodes,
+        double damping_div,
         double mass_per_dof,
         double C_stiffness,
         double damping_ratio
