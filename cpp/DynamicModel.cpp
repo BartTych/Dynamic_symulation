@@ -18,16 +18,17 @@ DynamicModel::DynamicModel(
         const std::vector<int>& BC_nodes,
         const std::vector<int>& response_nodes,
         std::size_t number_of_nodes,
-        double damping_div = 10000,
-        double mass_per_dof = 0.03,
-        double C_stiffness = 1e8,
-        double damping_ratio = 0.004 
+        double damping_div,
+        double mass_per_dof,
+        double C_stiffness,
+        double damping_ratio 
     )
     {
         //std::cout << "damping_div = " << damping_div << std::endl;
         K = build_sparse_from_triplets(triplet_matrix, nrows, ncols);
         K.makeCompressed();
         inv_M = build_inv_mass_vector(number_of_nodes, mass_per_dof);
+        this -> mass_per_dof = mass_per_dof;
         fixed_dofs = get_fixed_dofs(BC_nodes);
         excitation_dofs = get_excitation_dofs(BC_nodes);
         response_dofs = get_response_dofs(response_nodes);
@@ -43,7 +44,7 @@ DynamicModel::DynamicModel(
     }
 
 std::tuple<std::vector<double>, std::vector<double>, std::vector<double>>
-DynamicModel::run_simulation(int n_steps, double dt, int log_interval = 10)
+DynamicModel::run_simulation(int n_steps, double dt, int start_f, int end_f,int log_interval)
 {
     //std::cout << "K: " << K.rows() << " x " << K.cols() << ", u: " << u.size() << std::endl;
     std::vector<double> exc_log;
@@ -56,7 +57,7 @@ DynamicModel::run_simulation(int n_steps, double dt, int log_interval = 10)
     steps_log.reserve(n_log_steps);
 
     double length = dt * n_steps;
-    auto excitation = precompute_excitation(n_steps, dt, 30, 250, length, 0.001);
+    auto excitation = precompute_excitation(n_steps, dt, start_f, end_f, length, 0.0001);
     std::chrono::high_resolution_clock::time_point last_time = std::chrono::high_resolution_clock::now();
     for (int step = 0; step < n_steps; ++step) {
         double T = step * dt;
@@ -92,6 +93,10 @@ DynamicModel::run_simulation(int n_steps, double dt, int log_interval = 10)
             if (!response_dofs.empty()) {
                 end_log.push_back(u[response_dofs[0]]);
             }
+        }
+
+        if (step % 100 == 0) {
+          u_log.push_back(u);  // this makes a deep copy of the vector
         }
         /*
         if (step % 1000 == 0) {
@@ -134,7 +139,6 @@ std::vector<std::pair<double, double>> DynamicModel::precompute_excitation(int n
     return excitation;
 }
 
-
 void DynamicModel::excitation_sweep(double t, double& x, double& v_out,
                           double f0 = 1.0, double f1 = 10.0, double T = 5.0, double A = 1.0) const {
         double k = (f1 - f0) / T;
@@ -143,12 +147,15 @@ void DynamicModel::excitation_sweep(double t, double& x, double& v_out,
         v_out = A * 2.0 * M_PI * (f0 + k * t) * std::cos(phi);
     }
 
+    /*
     Eigen::SparseMatrix<double> K;
     Eigen::VectorXd inv_M;
     Eigen::VectorXd u, v, a, f_damp, f_int;
     std::vector<int> fixed_dofs;
     std::vector<int> excitation_dofs;
     double C_stiffness;
+    */
+
 
 Eigen::SparseMatrix<double> DynamicModel::build_sparse_from_triplets(const Eigen::MatrixXd& triplets, int nrows, int ncols) {
         using T = Eigen::Triplet<double>;
@@ -209,17 +216,19 @@ PYBIND11_MODULE(DynamicModel, m) {
              py::arg("BC_nodes"),
              py::arg("response_nodes"),
              py::arg("number_of_nodes"),
-             py::arg("damping_div") = 10000,
-             py::arg("mass_per_dof") = 0.03,
+             py::arg("damping_div"),
+             py::arg("mass_per_dof") = 0.03 * 10e-4,
              py::arg("C_stiffness") = 1e8,
              py::arg("damping_ratio") = 0.01)
-        .def("run_simulation", &DynamicModel::run_simulation,  py::arg("n_steps"), py::arg("dt"),py::arg("log_interval"), py::call_guard<py::gil_scoped_release>())
+        .def("run_simulation", &DynamicModel::run_simulation,  py::arg("n_steps"), py::arg("dt"),py::arg("start_f"),py::arg("end_f"),py::arg("log_interval"), py::call_guard<py::gil_scoped_release>())
         .def("excitation_sweep", &DynamicModel::excitation_sweep)
         .def_readwrite("K", &DynamicModel::K)
         .def_readwrite("u", &DynamicModel::u)
+        .def_readwrite("u_log", &DynamicModel::u_log)
         .def_readwrite("v", &DynamicModel::v)
         .def_readwrite("a", &DynamicModel::a)
         .def_readwrite("inv_M", &DynamicModel::inv_M)
+        .def_readwrite("mass_per_dof",&DynamicModel::mass_per_dof)
         .def_readwrite("fixed_dofs", &DynamicModel::fixed_dofs)
         .def_readwrite("excitation_dofs", &DynamicModel::excitation_dofs)
         .def_readwrite("response_dofs", &DynamicModel::response_dofs)

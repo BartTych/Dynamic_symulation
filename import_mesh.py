@@ -35,6 +35,13 @@ def read_mesh_to_edges(mesh_file):
     
     return compute_edge_angles_and_lengths(edges, points), len(points)
 
+def read_mesh_pos_as_dofs(mesh_file):
+    
+    mesh = meshio.read(mesh_file)
+    points = mesh.points  # (N, 3) array
+
+    return points
+
 def compute_edge_angles_and_lengths(edge_list, points):
     result = []
     for n1, n2 in edge_list:

@@ -26,11 +26,6 @@ damping_div = 10_000
 multiplier = 5
 
 model_1 = DynamicModel.DynamicModel(triplets,nrows,ncols,BC_nodes,end_nodes,number_of_nodes, damping_div)
-exc_log_1, end_log_1, T_log_1 = model_1.run_simulation(multiplier*10**5,10**-5/multiplier, 10)
+#exc_log_1, end_log_1, T_log_1 = model_1.run_simulation(multiplier*10**5,10**-5/multiplier, 10)
 
-end = datetime.datetime.now()
-print(f"simulation took {end - star} seconds")
-
-plt.plot(T_log_1,end_log_1, label='end response 1')
-
-plt.show()
+print(model_1.u)

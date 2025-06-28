@@ -5,6 +5,20 @@
 
 class DynamicModel {
 public:
+
+    // Public members
+    Eigen::SparseMatrix<double> K;
+    Eigen::VectorXd inv_M;
+    double mass_per_dof;
+    Eigen::VectorXd u,v, a, f_damp, f_int;
+    std::vector<Eigen::VectorXd> u_log;
+    std::vector<int> fixed_dofs;
+    std::vector<int> excitation_dofs;
+    std::vector<int> response_dofs;
+    double C_stiffness;
+    double damping_coefficient;
+    double damping_ratio;
+
     DynamicModel(
         const Eigen::MatrixXd& triplet_matrix,
         int nrows,
@@ -13,12 +27,12 @@ public:
         const std::vector<int>& response_nodes,
         std::size_t number_of_nodes,
         double damping_div,
-        double mass_per_dof,
-        double C_stiffness,
-        double damping_ratio
+        double mass_per_dof = 0.03*10e-3,
+        double C_stiffness =1e8,
+        double damping_ratio =0.01 
     );
 
-    std::tuple<std::vector<double>, std::vector<double>, std::vector<double>> run_simulation(int n_steps, double dt, int log_interval);
+    std::tuple<std::vector<double>, std::vector<double>, std::vector<double>> run_simulation(int n_steps, double dt,int start_f ,int end_f, int log_interval);
     
     void excitation_sweep(double t, double& x, double& v_out,
                           double f0, double f1,
@@ -27,15 +41,7 @@ public:
     std::vector<std::pair<double, double>> precompute_excitation(int n_steps, double dt, 
     double f0, double f1, double T, double A) const;
 
-    // Public members
-    Eigen::SparseMatrix<double> K;
-    Eigen::VectorXd inv_M;
-    Eigen::VectorXd u, v, a, f_damp, f_int;
-    std::vector<int> fixed_dofs;
-    std::vector<int> excitation_dofs;
-    std::vector<int> response_dofs;
-    double C_stiffness;
-    double damping_coefficient;
+    
 
 private:
     static Eigen::SparseMatrix<double> build_sparse_from_triplets(
