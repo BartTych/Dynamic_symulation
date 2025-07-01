@@ -18,10 +18,9 @@ DynamicModel::DynamicModel(
         const std::vector<int>& BC_nodes,
         const std::vector<int>& response_nodes,
         std::size_t number_of_nodes,
-        double damping_div,
+        double damping,
         double mass_per_dof,
-        double C_stiffness,
-        double damping_ratio 
+        double C_stiffness
     )
     {
         //std::cout << "damping_div = " << damping_div << std::endl;
@@ -33,7 +32,7 @@ DynamicModel::DynamicModel(
         excitation_dofs = get_excitation_dofs(BC_nodes);
         response_dofs = get_response_dofs(response_nodes);
         this->C_stiffness = C_stiffness;
-        this->damping_coefficient = 2.0 * std::sqrt(C_stiffness/damping_div + mass_per_dof) * damping_ratio;
+        this->damping_coefficient = damping;
         //std::cout << "damping_coefficient = " << damping_coefficient << std::endl;
         std::size_t ndofs = number_of_nodes * 2;
         u = Eigen::VectorXd::Zero(ndofs);
@@ -57,7 +56,7 @@ DynamicModel::run_simulation(int n_steps, double dt, int start_f, int end_f,int 
     steps_log.reserve(n_log_steps);
 
     double length = dt * n_steps;
-    auto excitation = precompute_excitation(n_steps, dt, start_f, end_f, length, 0.0001);
+    //auto excitation = precompute_excitation(n_steps, dt, start_f, end_f, length, 0.0001);
     std::chrono::high_resolution_clock::time_point last_time = std::chrono::high_resolution_clock::now();
     for (int step = 0; step < n_steps; ++step) {
         double T = step * dt;
@@ -69,8 +68,12 @@ DynamicModel::run_simulation(int n_steps, double dt, int start_f, int end_f,int 
 
         // Apply dynamic excitation
         for (std::size_t i = 0; i < excitation_dofs.size(); ++i) {
-        u[excitation_dofs[i]] = excitation[step].first;
-        v[excitation_dofs[i]] = excitation[step].second;
+            excitation_sweep(T,u[excitation_dofs[i]], v[excitation_dofs[i]],
+                          start_f, end_f, length, 0.0001);
+        
+        
+        //u[excitation_dofs[i]] = excitation[step].first;
+        //v[excitation_dofs[i]] = excitation[step].second;
         }
 
 
@@ -94,10 +97,12 @@ DynamicModel::run_simulation(int n_steps, double dt, int start_f, int end_f,int 
                 end_log.push_back(u[response_dofs[0]]);
             }
         }
-
-        if (step % 100 == 0) {
+        
+        if (step % 1000 == 0) {
           u_log.push_back(u);  // this makes a deep copy of the vector
         }
+        
+
         /*
         if (step % 1000 == 0) {
         int nnz = 0;
@@ -110,16 +115,18 @@ DynamicModel::run_simulation(int n_steps, double dt, int start_f, int end_f,int 
                 << ", u[exc] = " << u[excitation_dofs[0]]
                 << ", u[resp] = " << u[response_dofs[0]] << std::endl;
         }
+        */
 
-        
-
-        if (step % 1000 == 0) {
+        if (step % 10000 == 0) {
         auto now = std::chrono::high_resolution_clock::now();
         double elapsed = std::chrono::duration<double>(now - last_time).count();
         std::cout << "Step " << step << ", elapsed: " << elapsed << " s" << std::endl;
+        
         last_time = now;
-        }
-        */
+        
+    }
+        
+        
     }
     return std::make_tuple(exc_log, end_log, steps_log);
 }
@@ -139,12 +146,12 @@ std::vector<std::pair<double, double>> DynamicModel::precompute_excitation(int n
     return excitation;
 }
 
-void DynamicModel::excitation_sweep(double t, double& x, double& v_out,
+void DynamicModel::excitation_sweep(double t, double& x, double& v,
                           double f0 = 1.0, double f1 = 10.0, double T = 5.0, double A = 1.0) const {
         double k = (f1 - f0) / T;
         double phi = 2.0 * M_PI * (f0 * t + 0.5 * k * t * t);
         x = A * std::sin(phi);
-        v_out = A * 2.0 * M_PI * (f0 + k * t) * std::cos(phi);
+        v = A * 2.0 * M_PI * (f0 + k * t) * std::cos(phi);
     }
 
     /*
@@ -209,7 +216,7 @@ Eigen::VectorXd DynamicModel::build_inv_mass_vector(std::size_t number_of_nodes,
 namespace py = pybind11;
 PYBIND11_MODULE(DynamicModel, m) {
     py::class_<DynamicModel>(m, "DynamicModel")
-        .def(py::init<const Eigen::MatrixXd&, int, int, const std::vector<int>&, const std::vector<int>&, std::size_t, double, double, double,double>(),
+        .def(py::init<const Eigen::MatrixXd&, int, int, const std::vector<int>&, const std::vector<int>&, std::size_t, double, double, double>(),
              py::arg("triplet_matrix"),
              py::arg("nrows"),
              py::arg("ncols"),
@@ -217,9 +224,8 @@ PYBIND11_MODULE(DynamicModel, m) {
              py::arg("response_nodes"),
              py::arg("number_of_nodes"),
              py::arg("damping_div"),
-             py::arg("mass_per_dof") = 0.03 * 10e-4,
-             py::arg("C_stiffness") = 1e8,
-             py::arg("damping_ratio") = 0.01)
+             py::arg("mass_per_dof") = 0.03 * 10e-5,
+             py::arg("C_stiffness") = 1e8)
         .def("run_simulation", &DynamicModel::run_simulation,  py::arg("n_steps"), py::arg("dt"),py::arg("start_f"),py::arg("end_f"),py::arg("log_interval"), py::call_guard<py::gil_scoped_release>())
         .def("excitation_sweep", &DynamicModel::excitation_sweep)
         .def_readwrite("K", &DynamicModel::K)

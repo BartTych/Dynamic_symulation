@@ -34,14 +34,14 @@ nrows, ncols = K.shape
 triplets = np.vstack((rows, cols, values)).T.astype(np.float64) 
 
 
-animation = False
+animation = True
 
 def run_single_simulation(args):
     steps,dt, strart_f, end_f, damping_div = args
     print(f"Running simulation with start_f: {strart_f}, end_f: {end_f}, damping_div: {damping_div}")
-    model_1 = DynamicModel.DynamicModel(triplets,nrows,ncols,BC_nodes,end_nodes,number_of_nodes, damping_div * 2000000)
+    model_1 = DynamicModel.DynamicModel(triplets,nrows,ncols,BC_nodes,end_nodes,number_of_nodes, damping_div)
     print(model_1.mass_per_dof)
-    exc_log_1, end_log_1, T_log_1 = model_1.run_simulation(steps, dt, strart_f, end_f, 10)
+    exc_log_1, end_log_1, T_log_1 = model_1.run_simulation(steps, dt, strart_f, end_f, 100)
     
     if animation:
         u_log = model_1.u_log
@@ -51,25 +51,20 @@ def run_single_simulation(args):
 
 
 args = [
-        (10**6, 10**-7, 90, 90,  350),
-        (10**6, 10**-7, 90, 90,  700),
-        (10**6, 10**-7, 90, 90,  1050),
-        (10**6, 10**-7, 90, 90,  1400),
-        (10**6, 10**-7, 90, 90,  1750),
-        (10**6, 10**-7, 90, 90,  2100)
+        (int(10**6), 10**-7, 50, 50,  (1/3)*(0.5**3)*(10**-2)),
+        (int(10**6), 10**-7, 315, 315,  (1/3)*(0.5**3)*(10**-2)),
         ]
 
-with ThreadPoolExecutor(max_workers = 3) as executor:
+print(f"Start time {datetime.datetime.now()}")
+
+with ThreadPoolExecutor(max_workers = 2) as executor:
     results = list(executor.map(run_single_simulation, args))
-
-
-
 
 # for animation 
 if animation:
     list_a, list_b, list_c, u_log = zip(*results)
     pickle.dump(u_log, open('u_log.pkl', 'wb'))
-else:
-    pickle.dump(results, open('end.pkl', 'wb'))
+
+#pickle.dump(results, open('end.pkl', 'wb'))
 
 

@@ -27,9 +27,8 @@ public:
         const std::vector<int>& response_nodes,
         std::size_t number_of_nodes,
         double damping_div,
-        double mass_per_dof = 0.03*10e-3,
-        double C_stiffness =1e8,
-        double damping_ratio =0.01 
+        double mass_per_dof = 0.03 * 10e-5,
+        double C_stiffness =1e8
     );
 
     std::tuple<std::vector<double>, std::vector<double>, std::vector<double>> run_simulation(int n_steps, double dt,int start_f ,int end_f, int log_interval);
