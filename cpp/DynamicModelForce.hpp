@@ -3,14 +3,14 @@
 #include <Eigen/Dense>
 #include <vector>
 
-class DynamicModel {
+class DynamicModelForce {
 public:
 
     // Public members
     Eigen::SparseMatrix<double> K;
     Eigen::VectorXd inv_M;
     double mass_per_dof;
-    Eigen::VectorXd u,v, a, f_damp, f_int;
+    Eigen::VectorXd u,v, a, f_ext ,f_damp, f_int;
     std::vector<Eigen::VectorXd> u_log;
     std::vector<int> fixed_dofs;
     std::vector<int> excitation_dofs;
@@ -19,7 +19,7 @@ public:
     double damping_coefficient;
     double damping_ratio;
 
-    DynamicModel(
+    DynamicModelForce(
         const Eigen::MatrixXd& triplet_matrix,
         int nrows,
         int ncols,
@@ -33,7 +33,7 @@ public:
 
     std::tuple<std::vector<double>, std::vector<double>, std::vector<double>> run_simulation(int n_steps, double dt,int start_f ,int end_f, int log_interval);
     
-    void excitation_sweep(double t, double& x, double& v_out,
+    void force_excitation_sweep(double t, double& force,
                           double f0, double f1,
                           double T, double A) const;
 

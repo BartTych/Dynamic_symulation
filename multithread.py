@@ -1,5 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor
-from cpp import DynamicModel
+from cpp import DynamicModelForce
 from matplotlib import pyplot as plt
 from import_mesh import read_mesh_to_edges
 from import_mesh import get_nodes_for_line
@@ -34,12 +34,12 @@ nrows, ncols = K.shape
 triplets = np.vstack((rows, cols, values)).T.astype(np.float64) 
 
 
-animation = True
+animation = False
 
 def run_single_simulation(args):
     steps,dt, strart_f, end_f, damping_div = args
     print(f"Running simulation with start_f: {strart_f}, end_f: {end_f}, damping_div: {damping_div}")
-    model_1 = DynamicModel.DynamicModel(triplets,nrows,ncols,BC_nodes,end_nodes,number_of_nodes, damping_div)
+    model_1 = DynamicModelForce.DynamicModelForce(triplets,nrows,ncols,BC_nodes,end_nodes,number_of_nodes, damping_div)
     print(model_1.mass_per_dof)
     exc_log_1, end_log_1, T_log_1 = model_1.run_simulation(steps, dt, strart_f, end_f, 100)
     
@@ -51,8 +51,8 @@ def run_single_simulation(args):
 
 
 args = [
-        (int(10**6), 10**-7, 50, 50,  (1/3)*(0.5**3)*(10**-2)),
-        (int(10**6), 10**-7, 315, 315,  (1/3)*(0.5**3)*(10**-2)),
+        (int(10**7), 10**-7, 30, 70,  (1/3)*(0.5**3)*(10**-2)),
+        (int(10**7), 10**-7, 250, 350,  (1/3)*(0.5**3)*(10**-2)),
         ]
 
 print(f"Start time {datetime.datetime.now()}")
@@ -65,6 +65,6 @@ if animation:
     list_a, list_b, list_c, u_log = zip(*results)
     pickle.dump(u_log, open('u_log.pkl', 'wb'))
 
-#pickle.dump(results, open('end.pkl', 'wb'))
+pickle.dump(results, open('end.pkl', 'wb'))
 
 

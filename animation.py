@@ -3,7 +3,7 @@ import pickle
 from matplotlib import pyplot as plt
 
 from import_mesh import read_mesh_pos_as_dofs
-import animation_prep
+from animation_forlder import animation_prep
 
 u_log_data = pickle.load(open('u_log.pkl', 'rb'))
 
