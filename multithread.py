@@ -34,7 +34,7 @@ nrows, ncols = K.shape
 triplets = np.vstack((rows, cols, values)).T.astype(np.float64) 
 
 
-animation = False
+animation = True
 
 def run_single_simulation(args):
     steps,dt, strart_f, end_f, damping_div = args
@@ -51,8 +51,8 @@ def run_single_simulation(args):
 
 
 args = [
-        (int(10**7), 10**-7, 30, 70,  (1/3)*(0.5**3)*(10**-2)),
-        (int(10**7), 10**-7, 250, 350,  (1/3)*(0.5**3)*(10**-2)),
+        (int(5*10**5), 10**-7, 883, 883,  (1/3)*(0.5**3)*(10**-2)),
+        
         ]
 
 print(f"Start time {datetime.datetime.now()}")
@@ -65,6 +65,6 @@ if animation:
     list_a, list_b, list_c, u_log = zip(*results)
     pickle.dump(u_log, open('u_log.pkl', 'wb'))
 
-pickle.dump(results, open('end.pkl', 'wb'))
+#pickle.dump(results, open('end.pkl', 'wb'))
 
 

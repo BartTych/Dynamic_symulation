@@ -4,7 +4,7 @@ import datetime
 
 
   # Specify which results to plot
-result_to_plot = [0,1]
+result_to_plot = [0]
 result = pickle.load(open('end.pkl', 'rb'))
 for i, (exc, end, step) in enumerate(result):
             #plt.plot(step, exc, label='excitation')

@@ -100,11 +100,11 @@ DynamicModelForce::run_simulation(int n_steps, double dt, int start_f, int end_f
                 end_log.push_back(u[response_dofs[0]]);
             }
         }
-        /*
+        
         if (step % 1000 == 0) {
           u_log.push_back(u);  // this makes a deep copy of the vector
         }
-        */
+        
 
         /*
         if (step % 1000 == 0) {
