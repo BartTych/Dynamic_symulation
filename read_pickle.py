@@ -3,9 +3,9 @@ from matplotlib import pyplot as plt
 import datetime
 
 
-  # Specify which results to plot
+# Specify which results to plot
 result_to_plot = [0]
-result = pickle.load(open('end.pkl', 'rb'))
+result = pickle.load(open('end_dis_2.pkl', 'rb'))
 for i, (exc, end, step) in enumerate(result):
             #plt.plot(step, exc, label='excitation')
     if i in result_to_plot:

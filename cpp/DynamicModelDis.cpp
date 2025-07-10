@@ -9,9 +9,9 @@
 #include <Eigen/Sparse>
 #include <Eigen/Dense>
 #include <chrono> 
+#include <iomanip>
 
-
-DynamicModelForce::DynamicModelForce(
+DynamicModelDis::DynamicModelDis(
         const Eigen::MatrixXd& triplet_matrix,
         int nrows,
         int ncols,
@@ -43,7 +43,7 @@ DynamicModelForce::DynamicModelForce(
     }
 
 std::tuple<std::vector<double>, std::vector<double>, std::vector<double>>
-DynamicModelDis::run_simulation(int n_steps, double dt, int start_f, int end_f,int log_interval)
+DynamicModelDis::run_simulation(int n_steps, double dt, int start_f, int end_f,int log_interval, bool animation)
 {
     //std::cout << "K: " << K.rows() << " x " << K.cols() << ", u: " << u.size() << std::endl;
     std::vector<double> exc_log;
@@ -95,11 +95,12 @@ DynamicModelDis::run_simulation(int n_steps, double dt, int start_f, int end_f,i
                 end_log.push_back(u[response_dofs[0]]);
             }
         }
-        /*
-        if (step % 1000 == 0) {
+        
+        
+        if (animation == true && step % 1000 == 0) {
           u_log.push_back(u);  // this makes a deep copy of the vector
         }
-        */
+        
 
         /*
         if (step % 1000 == 0) {
@@ -118,8 +119,8 @@ DynamicModelDis::run_simulation(int n_steps, double dt, int start_f, int end_f,i
         if (step % 10000 == 0) {
         auto now = std::chrono::high_resolution_clock::now();
         double elapsed = std::chrono::duration<double>(now - last_time).count();
-        std::cout << "Step " << step << ", elapsed: " << elapsed << " s" << std::endl;
-        
+        std::cout << "Done " << std::fixed << std::setprecision(3) << (step / static_cast<double>(n_steps))
+          << ", elapsed: " << elapsed << " s" << std::endl;
         last_time = now;
         
     }
@@ -212,7 +213,7 @@ Eigen::VectorXd DynamicModelDis::build_inv_mass_vector(std::size_t number_of_nod
 
 
 namespace py = pybind11;
-PYBIND11_MODULE(DynamicModelForce, m) {
+PYBIND11_MODULE(DynamicModelDis, m) {
     py::class_<DynamicModelDis>(m, "DynamicModelDis")
         .def(py::init<const Eigen::MatrixXd&, int, int, const std::vector<int>&, const std::vector<int>&, std::size_t, double, double, double>(),
              py::arg("triplet_matrix"),
@@ -224,7 +225,7 @@ PYBIND11_MODULE(DynamicModelForce, m) {
              py::arg("damping_div"),
              py::arg("mass_per_dof") = 0.03 * 10e-5,
              py::arg("C_stiffness") = 1e8)
-        .def("run_simulation", &DynamicModelDis::run_simulation,  py::arg("n_steps"), py::arg("dt"),py::arg("start_f"),py::arg("end_f"),py::arg("log_interval"), py::call_guard<py::gil_scoped_release>())
+        .def("run_simulation", &DynamicModelDis::run_simulation,  py::arg("n_steps"), py::arg("dt"),py::arg("start_f"),py::arg("end_f"),py::arg("log_interval"), py::arg("animation"), py::call_guard<py::gil_scoped_release>())
         .def("excitation_sweep", &DynamicModelDis::excitation_sweep)
         .def_readwrite("K", &DynamicModelDis::K)
         .def_readwrite("u", &DynamicModelDis::u)
